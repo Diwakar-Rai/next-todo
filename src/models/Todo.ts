@@ -1,4 +1,4 @@
-import mongoose, { mongo } from "mongoose";
+import mongoose from "mongoose";
 
 const TodoSchema = new mongoose.Schema(
   {
@@ -10,6 +10,10 @@ const TodoSchema = new mongoose.Schema(
     description: {
       type: String,
       default: "",
+    },
+    completed: {
+      type: Boolean,
+      default: false,
     },
     ownerId: {
       type: mongoose.Schema.Types.ObjectId,
