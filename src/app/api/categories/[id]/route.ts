@@ -1,7 +1,4 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import { connectDB } from "@/lib/db";
 import Category from "@/models/Category";
 import { withAuth } from "@/lib/api";
 import { getOwenershipOrAdmin } from "@/lib/guard";
