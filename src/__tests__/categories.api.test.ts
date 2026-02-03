@@ -4,6 +4,7 @@ import Category from "@/models/Category";
 import { POST } from "@/app/api/categories/route";
 import { normalizeResponse } from "../test-utils/normalizeResponse";
 import { PUT } from "@/app/api/categories/[id]/route";
+import { DELETE } from "@/app/api/categories/[id]/route";
 
 jest.mock("@/lib/api", () => {
   return { withAuth: jest.fn() };
@@ -85,6 +86,41 @@ describe("GET /api/categories", () => {
     // ❗ Very important
     expect(Category.create).not.toHaveBeenCalled();
   });
+
+  it("returns 403 when user tries to delete a category they do not own", async () => {
+    // Arrange
+    const fakeSession = {
+      user: { id: "user1", role: "USER" },
+    };
+
+    const fakeCategory = {
+      _id: "cat1",
+      ownerId: "user2", // 👈 belongs to someone else
+      deleteOne: jest.fn(),
+    };
+
+    (withAuth as jest.Mock).mockResolvedValue(fakeSession);
+    (Category.findById as jest.Mock).mockResolvedValue(fakeCategory);
+
+    const request = new Request("http://localhost/api/categories/cat1", {
+      method: "DELETE",
+    });
+
+    // Act
+    const response = (await DELETE(request, {
+      params: { id: "cat1" },
+    })) as Response;
+
+    const data = await response.json();
+
+    // Assert
+    expect(response.status).toBe(403);
+    expect(data.message).toBe("Forbidden");
+
+    // ❗ Absolutely critical
+    expect(fakeCategory.deleteOne).not.toHaveBeenCalled();
+  });
+
   // it("returns 401 when the user is not authenticated", async () => {
   //   (withAuth as jest.Mock).mockRejectedValue(new Error("Unauthorized"));
   //   const request = new Request("http://localhost/api/categories", {
@@ -183,6 +219,40 @@ describe("GET /api/categories", () => {
     // ❗ Must NOT modify or save
     expect(fakeCategory.name).toBe("Original Name");
     expect(fakeCategory.save).not.toHaveBeenCalled();
+  });
+
+  it("deletes category when user is the owner", async () => {
+    // Arrange
+    const fakeSession = {
+      user: { id: "user1", role: "USER" },
+    };
+
+    const fakeCategory = {
+      _id: "cat1",
+      ownerId: "user1",
+      deleteOne: jest.fn(),
+    };
+
+    (withAuth as jest.Mock).mockResolvedValue(fakeSession);
+    (Category.findById as jest.Mock).mockResolvedValue(fakeCategory);
+
+    const request = new Request("http://localhost/api/categories/cat1", {
+      method: "DELETE",
+    });
+
+    // Act
+    const response = (await DELETE(request, {
+      params: { id: "cat1" },
+    })) as Response;
+
+    const data = await response.json();
+
+    // Assert
+    expect(Category.findById).toHaveBeenCalledWith("cat1");
+    expect(fakeCategory.deleteOne).toHaveBeenCalled();
+
+    expect(response.status).toBe(200);
+    expect(data.message).toBe("Category deleted");
   });
 });
 
