@@ -5,8 +5,19 @@ export const swaggerSpec = swaggerJSDoc({
     info: {
       title: "Todo App API",
       version: "1.0.0",
+      description: "Industry-grade TODO application APIs",
+    },
+    components: {
+      securitySchemes: {
+        cookieAuth: {
+          type: "apiKey",
+          in: "cookie",
+          name: "next-auth.session-token",
+        },
+      },
     },
     paths: {},
+    security: [{ cookieAuth: [] }],
   },
-  apis: ["./src/app/api/**/*.ts"],
+  apis: ["./src/app/api/**/*.ts", "./src/swagger/**/*.ts"],
 });
