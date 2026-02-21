@@ -5,7 +5,7 @@ import { authOptions } from "./auth";
 export async function withAuth() {
   const session = await getServerSession(authOptions);
   if (!session) {
-    throw new Error("UNAUTHORIZED");
+    throw new Error("Unauthorized");
   }
   await connectDB();
   return session;

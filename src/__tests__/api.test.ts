@@ -15,7 +15,7 @@ describe("withAuth", () => {
 
   it("throws UNAUTHORIZED error when session is null", async () => {
     (getServerSession as jest.Mock).mockResolvedValue(null);
-    await expect(withAuth()).rejects.toThrow("UNAUTHORIZED");
+    await expect(withAuth()).rejects.toThrow("Unauthorized");
   });
 
   it("return session and connects DB when session exists", async () => {

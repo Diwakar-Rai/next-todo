@@ -5,7 +5,7 @@ import Todo from "@/models/Todo";
 import Category from "@/models/Category";
 export async function POST(req: Request) {
   try {
-    const session = withAuth();
+    const session = await withAuth();
     const { title, description, categoryId } = await req.json();
     if (!title || title.trim() === "") {
       return NextResponse.json(
@@ -24,13 +24,13 @@ export async function POST(req: Request) {
           { status: 404 },
         );
       }
+      getOwenershipOrAdmin(category.ownerId.toString(), session);
     }
 
-    getOwenershipOrAdmin(categoryId.ownerId.toString(), session);
     const todo = await Todo.create({
       title: title.trim(),
       description: description || "",
-      ownerId: (await session).user.id,
+      ownerId: session.user.id,
       categoryId: categoryId || null,
     });
 

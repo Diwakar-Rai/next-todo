@@ -10,7 +10,8 @@ export async function PUT(
   try {
     const session = await withAuth();
     const { name } = await req.json();
-    if (!name || name.trim().length === 0) {
+
+    if (!name?.trim()) {
       return NextResponse.json(
         { message: "Category name is required" },
         { status: 400 },
@@ -18,6 +19,7 @@ export async function PUT(
     }
 
     const category = await Category.findById(params.id);
+
     if (!category) {
       return NextResponse.json(
         { message: "Category not found" },
@@ -25,15 +27,25 @@ export async function PUT(
       );
     }
 
-    // ! Checking the admin
-
     getOwenershipOrAdmin(category.ownerId.toString(), session);
 
     category.name = name.trim();
     await category.save();
+
     return NextResponse.json(category, { status: 200 });
-  } catch (error) {
-    return error;
+  } catch (error: any) {
+    if (error?.message === "Unauthorized") {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
+
+    if (error?.message === "Forbidden") {
+      return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+    }
+
+    return NextResponse.json(
+      { message: "Internal Server Error" },
+      { status: 500 },
+    );
   }
 }
 
@@ -44,19 +56,31 @@ export async function DELETE(
   try {
     const session = await withAuth();
     const category = await Category.findById(params.id);
+
     if (!category) {
       return NextResponse.json(
         { message: "Category not found" },
-        {
-          status: 404,
-        },
+        { status: 404 },
       );
     }
+
     getOwenershipOrAdmin(category.ownerId.toString(), session);
 
     await category.deleteOne();
+
     return NextResponse.json({ message: "Category deleted" }, { status: 200 });
-  } catch (error) {
-    return error;
+  } catch (error: any) {
+    if (error?.message === "Unauthorized") {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
+
+    if (error?.message === "Forbidden") {
+      return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+    }
+
+    return NextResponse.json(
+      { message: "Internal Server Error" },
+      { status: 500 },
+    );
   }
 }
