@@ -48,3 +48,28 @@ export async function POST(req: Request) {
     );
   }
 }
+
+export async function GET() {
+  try {
+    const session = await withAuth();
+    const filter =
+      session.user.role === "ADMIN"
+        ? { deletedAt: null }
+        : { ownerId: session.user.id, deletedAt: null };
+    const todos = await Todo.find(filter).sort({ createdAt: -1 });
+    return NextResponse.json(todos, { status: 200 });
+  } catch (error: any) {
+    if (error.message === "Unauthorized") {
+      return NextResponse.json(
+        {
+          message: "Unauthorized",
+        },
+        { status: 401 },
+      );
+    }
+    return NextResponse.json(
+      { message: "Internal Server Error" },
+      { status: 500 },
+    );
+  }
+}

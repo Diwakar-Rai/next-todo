@@ -1,7 +1,7 @@
 jest.mock("@/lib/api", () => ({ withAuth: jest.fn() }));
 jest.mock("@/models/Todo", () => ({
   __esModule: true,
-  default: { create: jest.fn() },
+  default: { create: jest.fn(), find: jest.fn() },
 }));
 jest.mock("@/models/Category", () => ({
   __esModule: true,
@@ -11,6 +11,7 @@ jest.mock("@/models/Category", () => ({
 }));
 
 import { POST } from "@/app/api/todos/route";
+import { GET } from "@/app/api/todos/route";
 import { withAuth } from "@/lib/api";
 import Todo from "@/models/Todo";
 import Category from "@/models/Category";
@@ -162,5 +163,67 @@ describe("POST /api/todos", () => {
     expect(data.message).toBe("Forbidden");
 
     expect(Todo.create).not.toHaveBeenCalled();
+  });
+});
+
+describe("GET /api/todos", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+  it("returns only user's todos for USER role", async () => {
+    const fakeSession = {
+      user: { id: "user1", role: "USER" },
+    };
+    const fakeTodos = [
+      { _id: "t1", title: "Todo 1", ownerId: "user1" },
+      { _id: "t2", title: "Todo 2", ownerId: "user1" },
+    ];
+    (withAuth as jest.Mock).mockResolvedValue(fakeSession);
+    (Todo.find as jest.Mock).mockReturnValue({
+      sort: jest.fn().mockResolvedValue(fakeTodos),
+    });
+    const response = (await GET()) as Response;
+    const data = await response.json();
+
+    expect(Todo.find).toHaveBeenCalledWith({
+      ownerId: "user1",
+      deletedAt: null,
+    });
+    expect(response.status).toBe(200);
+    expect(data).toEqual(fakeTodos);
+  });
+
+  it("returns all todos for ADMIN role", async () => {
+    const fakeSession = {
+      user: { id: "admin1", role: "ADMIN" },
+    };
+    const fakeTodos = [
+      { _id: "t1", title: "Todo 1", ownerId: "user1" },
+      { _id: "t2", title: "Todo 2", ownerId: "user2" },
+    ];
+
+    (withAuth as jest.Mock).mockResolvedValue(fakeSession);
+    (Todo.find as jest.Mock).mockReturnValue({
+      sort: jest.fn().mockResolvedValue(fakeTodos),
+    });
+    const response = (await GET()) as Response;
+    const data = await response.json();
+
+    expect(Todo.find).toHaveBeenCalledWith({
+      deletedAt: null,
+    });
+
+    expect(response.status).toBe(200);
+    expect(data).toEqual(fakeTodos);
+  });
+
+  it("returns 401 when user is not authenticated", async () => {
+    (withAuth as jest.Mock).mockRejectedValue(new Error("Unauthorized"));
+    const response = (await GET()) as Response;
+    const data = await response.json();
+
+    expect(response.status).toBe(401);
+    expect(data.message).toBe("Unauthorized");
+    expect(Todo.find).not.toHaveBeenCalled();
   });
 });

@@ -35,3 +35,21 @@
  *       403:
  *         description: Forbidden
  */
+
+/**
+ * @swagger
+ * /api/todos:
+ *  get:
+ *      summary: Get todos
+ *      tags:
+ *          - Todos
+ *      description: |
+ *          USER -> gets only own todos
+ *          ADMIN -> gets all todos
+ *          Soft-deleted todos are excluded
+ *      responses:
+ *          200:
+ *              description: List of todos
+ *          401:
+ *              description: Unauthorized
+ */
