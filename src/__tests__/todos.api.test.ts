@@ -1,7 +1,7 @@
 jest.mock("@/lib/api", () => ({ withAuth: jest.fn() }));
 jest.mock("@/models/Todo", () => ({
   __esModule: true,
-  default: { create: jest.fn(), find: jest.fn() },
+  default: { create: jest.fn(), find: jest.fn(), findById: jest.fn() },
 }));
 jest.mock("@/models/Category", () => ({
   __esModule: true,
@@ -10,8 +10,8 @@ jest.mock("@/models/Category", () => ({
   },
 }));
 
-import { POST } from "@/app/api/todos/route";
-import { GET } from "@/app/api/todos/route";
+import { POST, GET } from "@/app/api/todos/route";
+import { PUT, DELETE } from "@/app/api/todos/[id]/route";
 import { withAuth } from "@/lib/api";
 import Todo from "@/models/Todo";
 import Category from "@/models/Category";
@@ -225,5 +225,265 @@ describe("GET /api/todos", () => {
     expect(response.status).toBe(401);
     expect(data.message).toBe("Unauthorized");
     expect(Todo.find).not.toHaveBeenCalled();
+  });
+});
+
+describe("PUT /api/todos/:id", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+  it("updates todo when user is owner", async () => {
+    const fakeSession = {
+      user: { id: "user1", role: "USER" },
+    };
+
+    const fakeTodo = {
+      _id: "todo1",
+      title: "Old",
+      description: "",
+      completed: false,
+      ownerId: "user1",
+      deletedAt: null,
+      save: jest.fn(),
+    };
+
+    (withAuth as jest.Mock).mockResolvedValue(fakeSession);
+    (Todo.findById as jest.Mock).mockResolvedValue(fakeTodo);
+
+    const request = new Request("http://localhost/api/todos/todo1", {
+      method: "PUT",
+      body: JSON.stringify({ title: "New Title" }),
+      headers: { "Content-Type": "application/json" },
+    });
+
+    const response = (await PUT(request, {
+      params: { id: "todo1" },
+    })) as Response;
+
+    const data = await response.json();
+
+    expect(fakeTodo.title).toBe("New Title");
+    expect(fakeTodo.save).toHaveBeenCalled();
+    expect(response.status).toBe(200);
+    expect(data._id).toBe("todo1");
+  });
+
+  it("returns 403 when user is not owner", async () => {
+    const fakeSession = {
+      user: { id: "user1", role: "USER" },
+    };
+
+    const fakeTodo = {
+      _id: "todo1",
+      ownerId: "user2",
+      deletedAt: null,
+      save: jest.fn(),
+    };
+
+    (withAuth as jest.Mock).mockResolvedValue(fakeSession);
+    (Todo.findById as jest.Mock).mockResolvedValue(fakeTodo);
+
+    const request = new Request("http://localhost/api/todos/todo1", {
+      method: "PUT",
+      body: JSON.stringify({ title: "Updated title" }),
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    const response = (await PUT(request, {
+      params: { id: "todo1" },
+    })) as Response;
+
+    expect(response.status).toBe(403);
+    expect(fakeTodo.save).not.toHaveBeenCalled();
+  });
+
+  it("returns 404 when todo does not exist", async () => {
+    const fakeSession = {
+      user: { id: "user1", role: "USER" },
+    };
+
+    (withAuth as jest.Mock).mockResolvedValue(fakeSession);
+    (Todo.findById as jest.Mock).mockResolvedValue(null);
+
+    const request = new Request("http://localhost/api/todos/todo1", {
+      method: "PUT",
+      body: JSON.stringify({ title: "Updated title" }),
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    const response = (await PUT(request, {
+      params: { id: "todo1" },
+    })) as Response;
+
+    expect(response.status).toBe(404);
+  });
+
+  it("returns 400 when title is empty", async () => {
+    const fakeSession = {
+      user: { id: "user1", role: "USER" },
+    };
+
+    const fakeTodo = {
+      _id: "todo1",
+      ownerId: "user1",
+      deletedAt: null,
+      save: jest.fn(),
+    };
+
+    (withAuth as jest.Mock).mockResolvedValue(fakeSession);
+    (Todo.findById as jest.Mock).mockResolvedValue(fakeTodo);
+
+    const request = new Request("http://localhost/api/todos/todo1", {
+      method: "PUT",
+      body: JSON.stringify({ title: "" }),
+      headers: { "Content-Type": "application/json" },
+    });
+
+    const response = (await PUT(request, {
+      params: { id: "todo1" },
+    })) as Response;
+
+    expect(response.status).toBe(400);
+    expect(fakeTodo.save).not.toHaveBeenCalled();
+  });
+
+  it("returns 404 when category does not exist", async () => {
+    const fakeSession = {
+      user: { id: "user1", role: "USER" },
+    };
+
+    const fakeTodo = {
+      _id: "todo1",
+      ownerId: "user1",
+      deletedAt: null,
+      save: jest.fn(),
+    };
+
+    (withAuth as jest.Mock).mockResolvedValue(fakeSession);
+    (Todo.findById as jest.Mock).mockResolvedValue(fakeTodo);
+    (Category.findById as jest.Mock).mockResolvedValue(null);
+
+    const request = new Request("http://localhost/api/todos/todo1", {
+      method: "PUT",
+      body: JSON.stringify({ categoryId: "badCat" }),
+      headers: { "Content-Type": "application/json" },
+    });
+
+    const response = (await PUT(request, {
+      params: { id: "todo1" },
+    })) as Response;
+
+    expect(response.status).toBe(404);
+  });
+
+  it("returns 401 when user is not authenticated", async () => {
+    (withAuth as jest.Mock).mockRejectedValue(new Error("Unauthorized"));
+
+    const request = new Request("http://localhost/api/todos/todo1", {
+      method: "PUT",
+    });
+
+    const response = (await PUT(request, {
+      params: { id: "todo1" },
+    })) as Response;
+
+    expect(response.status).toBe(401);
+  });
+});
+
+describe("DELETE /api/todos/:id", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+  it("soft deletes todo when user is owner", async () => {
+    const fakeSession = {
+      user: { id: "user1", role: "USER" },
+    };
+
+    const fakeTodo = {
+      _id: "todo1",
+      ownerId: "user1",
+      deletedAt: null,
+      save: jest.fn(),
+    };
+
+    (withAuth as jest.Mock).mockResolvedValue(fakeSession);
+    (Todo.findById as jest.Mock).mockResolvedValue(fakeTodo);
+
+    const response = (await DELETE(
+      new Request("http://localhost/api/todos/todo1", {
+        method: "DELETE",
+      }),
+      { params: { id: "todo1" } },
+    )) as Response;
+
+    const data = await response.json();
+
+    expect(fakeTodo.deletedAt).toBeInstanceOf(Date);
+    expect(fakeTodo.save).toHaveBeenCalled();
+    expect(response.status).toBe(200);
+    expect(data.message).toBe("Todo deleted");
+  });
+
+  it("returns 403 when user is not owner", async () => {
+    const fakeSession = {
+      user: { id: "user1", role: "USER" },
+    };
+
+    const fakeTodo = {
+      _id: "todo1",
+      ownerId: "user2",
+      deletedAt: null,
+      save: jest.fn(),
+    };
+
+    (withAuth as jest.Mock).mockResolvedValue(fakeSession);
+    (Todo.findById as jest.Mock).mockResolvedValue(fakeTodo);
+
+    const response = (await DELETE(
+      new Request("http://localhost/api/todos/todo1", {
+        method: "DELETE",
+      }),
+      { params: { id: "todo1" } },
+    )) as Response;
+
+    expect(response.status).toBe(403);
+    expect(fakeTodo.save).not.toHaveBeenCalled();
+  });
+
+  it("returns 404 when todo does not exist", async () => {
+    const fakeSession = {
+      user: { id: "user1", role: "USER" },
+    };
+
+    (withAuth as jest.Mock).mockResolvedValue(fakeSession);
+    (Todo.findById as jest.Mock).mockResolvedValue(null);
+
+    const response = (await DELETE(
+      new Request("http://localhost/api/todos/todo1", {
+        method: "DELETE",
+      }),
+      { params: { id: "todo1" } },
+    )) as Response;
+
+    expect(response.status).toBe(404);
+  });
+
+  it("returns 401 when user is not authenticated", async () => {
+    (withAuth as jest.Mock).mockRejectedValue(new Error("Unauthorized"));
+
+    const response = (await DELETE(
+      new Request("http://localhost/api/todos/todo1", {
+        method: "DELETE",
+      }),
+      { params: { id: "todo1" } },
+    )) as Response;
+
+    expect(response.status).toBe(401);
+    expect(Todo.findById).not.toHaveBeenCalled();
   });
 });

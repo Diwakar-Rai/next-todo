@@ -29,7 +29,7 @@ export async function POST(req: Request) {
 
     const todo = await Todo.create({
       title: title.trim(),
-      description: description || "",
+      description: description,
       ownerId: session.user.id,
       categoryId: categoryId || null,
     });

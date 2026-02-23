@@ -53,3 +53,67 @@
  *          401:
  *              description: Unauthorized
  */
+
+/**
+ * @swagger
+ * /api/todos/{id}:
+ *  put:
+ *      summary: Update a todo
+ *      tags:
+ *          - Todos
+ *      parameters:
+ *          - name: id
+ *            in: path
+ *            required: true
+ *            schema:
+ *              type: string
+ *      requestBody:
+ *          required: true
+ *          content:
+ *              application/json:
+ *                  schema:
+ *                      type: object
+ *                      properties:
+ *                          title:
+ *                              type: string
+ *                          description:
+ *                              type: string
+ *                          completed:
+ *                              type: string
+ *                          categoryId:
+ *                              type: string
+ *      responses:
+ *          200:
+ *              description: Todo updated
+ *          400:
+ *              description: Validation error
+ *          403:
+ *              description: Forbidden
+ *          404:
+ *              description: Not found
+ *
+ */
+
+/**
+ * @swagger
+ * /api/todos/{id}:
+ *  delete:
+ *      summary: Delete a todo (soft delete)
+ *      tags:
+ *          - Todos
+ *      parameters:
+ *          - name: id
+ *            in : path
+ *            required: true
+ *            schema:
+ *              type: string
+ *      responses:
+ *          200:
+ *              description: todo deleted
+ *          401:
+ *              description: Unauthorized
+ *          403:
+ *              description: Forbidden
+ *          404:
+ *              description: Not found
+ */
