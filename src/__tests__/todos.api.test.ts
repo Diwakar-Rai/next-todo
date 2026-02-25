@@ -221,7 +221,9 @@ describe("GET /api/todos", () => {
   });
 
   it("returns 401 when user is not authenticated", async () => {
-    (withAuth as jest.Mock).mockRejectedValue(new Error("Unauthorized"));
+    (withAuth as jest.Mock).mockRejectedValue(
+      new UnauthorizedError("Unauthorized"),
+    );
     const response = (await GET()) as Response;
     const data = await response.json();
 
@@ -283,7 +285,7 @@ describe("PUT /api/todos/:id", () => {
       save: jest.fn(),
     };
 
-    (withAuth as jest.Mock).mockResolvedValue(fakeSession);
+    (withAuth as jest.Mock).mockRejectedValue(new ForbiddenError("Forbidden"));
     (Todo.findById as jest.Mock).mockResolvedValue(fakeTodo);
 
     const request = new Request("http://localhost/api/todos/todo1", {
@@ -384,7 +386,9 @@ describe("PUT /api/todos/:id", () => {
   });
 
   it("returns 401 when user is not authenticated", async () => {
-    (withAuth as jest.Mock).mockRejectedValue(new Error("Unauthorized"));
+    (withAuth as jest.Mock).mockRejectedValue(
+      new UnauthorizedError("Unauthorized"),
+    );
 
     const request = new Request("http://localhost/api/todos/todo1", {
       method: "PUT",
@@ -444,7 +448,7 @@ describe("DELETE /api/todos/:id", () => {
       save: jest.fn(),
     };
 
-    (withAuth as jest.Mock).mockResolvedValue(fakeSession);
+    (withAuth as jest.Mock).mockRejectedValue(new ForbiddenError("Forbidden"));
     (Todo.findById as jest.Mock).mockResolvedValue(fakeTodo);
 
     const response = (await DELETE(
@@ -477,7 +481,9 @@ describe("DELETE /api/todos/:id", () => {
   });
 
   it("returns 401 when user is not authenticated", async () => {
-    (withAuth as jest.Mock).mockRejectedValue(new Error("Unauthorized"));
+    (withAuth as jest.Mock).mockRejectedValue(
+      new UnauthorizedError("Unauthorized"),
+    );
 
     const response = (await DELETE(
       new Request("http://localhost/api/todos/todo1", {

@@ -3,12 +3,10 @@ import { withAuth } from "@/lib/api";
 import { getOwenershipOrAdmin } from "@/lib/guard";
 import Todo from "@/models/Todo";
 import Category from "@/models/Category";
+import { withErrorHandling } from "@/lib/withErrorHandling";
 
-export async function PUT(
-  req: Request,
-  { params }: { params: { id: string } },
-) {
-  try {
+export const PUT = withErrorHandling(
+  async (req: Request, { params }: { params: { id: string } }) => {
     const session = await withAuth();
     const { title, description, completed, categoryId } = await req.json();
     const todo = await Todo.findById(params.id);
@@ -44,27 +42,11 @@ export async function PUT(
     }
     await todo.save();
     return NextResponse.json(todo, { status: 200 });
-  } catch (err: any) {
-    if (err.message === "Unauthorized") {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
+  },
+);
 
-    if (err.message === "Forbidden") {
-      return NextResponse.json({ message: "Forbidden" }, { status: 403 });
-    }
-
-    return NextResponse.json(
-      { message: "Internal server error" },
-      { status: 500 },
-    );
-  }
-}
-
-export async function DELETE(
-  req: Request,
-  { params }: { params: { id: string } },
-) {
-  try {
+export const DELETE = withErrorHandling(
+  async (req: Request, { params }: { params: { id: string } }) => {
     const session = await withAuth();
     const todo = await Todo.findById(params.id);
     if (!todo || todo.deletedAt !== null) {
@@ -76,17 +58,5 @@ export async function DELETE(
     todo.deletedAt = new Date();
     await todo.save();
     return NextResponse.json({ message: "Todo deleted" }, { status: 200 });
-  } catch (err: any) {
-    if (err.message === "Unauthorized") {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
-    if (err.message === "Forbidden") {
-      return NextResponse.json({ message: "Forbidden" }, { status: 403 });
-    }
-
-    return NextResponse.json(
-      { message: "Internal server error" },
-      { status: 500 },
-    );
-  }
-}
+  },
+);
