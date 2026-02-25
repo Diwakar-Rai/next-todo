@@ -15,6 +15,7 @@ import { PUT, DELETE } from "@/app/api/todos/[id]/route";
 import { withAuth } from "@/lib/api";
 import Todo from "@/models/Todo";
 import Category from "@/models/Category";
+import { ForbiddenError, NotFoundError, UnauthorizedError } from "@/lib/errors";
 
 describe("POST /api/todos", () => {
   beforeEach(() => {
@@ -87,7 +88,9 @@ describe("POST /api/todos", () => {
     expect(Todo.create).not.toHaveBeenCalled();
   });
   it("returns 401 when user is not authenticated", async () => {
-    (withAuth as jest.Mock).mockRejectedValue(new Error("Unauthorized"));
+    (withAuth as jest.Mock).mockRejectedValue(
+      new UnauthorizedError("Unauthorized"),
+    );
     const request = new Request("http://localhost/api/todos", {
       method: "POST",
       body: JSON.stringify({
@@ -142,7 +145,7 @@ describe("POST /api/todos", () => {
       ownerId: "user2",
     };
 
-    (withAuth as jest.Mock).mockResolvedValue(fakeSession);
+    (withAuth as jest.Mock).mockRejectedValue(new ForbiddenError("Forbidden"));
     (Category.findById as jest.Mock).mockResolvedValue(fakeCategory);
 
     const request = new Request("http://localhost/api/todos", {
