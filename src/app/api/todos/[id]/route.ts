@@ -4,11 +4,14 @@ import { getOwenershipOrAdmin } from "@/lib/guard";
 import Todo from "@/models/Todo";
 import Category from "@/models/Category";
 import { withErrorHandling } from "@/lib/withErrorHandling";
+import { updateTodoSchema } from "@/validation/todo.schema";
 
 export const PUT = withErrorHandling(
   async (req: Request, { params }: { params: { id: string } }) => {
     const session = await withAuth();
-    const { title, description, completed, categoryId } = await req.json();
+    const body = await req.json();
+    const { title, description, completed, categoryId } =
+      updateTodoSchema.parse(body);
     const todo = await Todo.findById(params.id);
     if (!todo || todo.deletedAt !== null) {
       return NextResponse.json({ message: "Todo not found" }, { status: 404 });
@@ -26,12 +29,6 @@ export const PUT = withErrorHandling(
       todo.categoryId = categoryId;
     }
     if (title !== undefined) {
-      if (!title || title.trim() === "") {
-        return NextResponse.json(
-          { message: "Title cannot be empty" },
-          { status: 400 },
-        );
-      }
       todo.title = title.trim();
     }
     if (description !== undefined) {

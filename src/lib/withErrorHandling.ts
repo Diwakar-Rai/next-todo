@@ -5,6 +5,7 @@ import {
   ForbiddenError,
   NotFoundError,
 } from "./errors";
+import { ZodError } from "zod";
 
 export function withErrorHandling(handler: Function) {
   return async (...args: any[]) => {
@@ -24,6 +25,14 @@ export function withErrorHandling(handler: Function) {
       }
       if (error instanceof ValidationError) {
         return NextResponse.json({ message: error.message }, { status: 400 });
+      }
+      if (error instanceof ZodError) {
+        return NextResponse.json(
+          {
+            message: error.issues[0]?.message || "Validation Error",
+          },
+          { status: 400 },
+        );
       }
       return NextResponse.json(
         { message: "Internal server erorr" },

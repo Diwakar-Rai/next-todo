@@ -4,17 +4,13 @@ import { getOwenershipOrAdmin } from "@/lib/guard";
 import Todo from "@/models/Todo";
 import Category from "@/models/Category";
 import { withErrorHandling } from "@/lib/withErrorHandling";
+import { createTodoSchema } from "@/validation/todo.schema";
+
 export const POST = withErrorHandling(async (req: Request) => {
   const session = await withAuth();
-  const { title, description, categoryId } = await req.json();
-  if (!title || title.trim() === "") {
-    return NextResponse.json(
-      {
-        message: "Title is required.",
-      },
-      { status: 400 },
-    );
-  }
+  const body = await req.json();
+  const { title, description, categoryId } = createTodoSchema.parse(body);
+
   if (categoryId) {
     const category = await Category.findById(categoryId);
 
