@@ -6,7 +6,11 @@ const config: Config = {
     "^@/(.*)$": "<rootDir>/src/$1",
   },
   collectCoverage: true,
-  collectCoverageFrom: ["src/lib/**/*.ts", "!src/lib/db.ts"],
+  collectCoverageFrom: [
+    "src/lib/**/*.ts",
+    "!src/lib/db.ts",
+    "!src/lib/swagger.ts",
+  ],
 };
 
 export default config;

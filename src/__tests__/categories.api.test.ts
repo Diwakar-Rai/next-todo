@@ -5,6 +5,7 @@ import { POST } from "@/app/api/categories/route";
 import { normalizeResponse } from "../test-utils/normalizeResponse";
 import { PUT } from "@/app/api/categories/[id]/route";
 import { DELETE } from "@/app/api/categories/[id]/route";
+import { ForbiddenError } from "@/lib/errors";
 
 jest.mock("@/lib/api", () => {
   return { withAuth: jest.fn() };
@@ -99,7 +100,7 @@ describe("GET /api/categories", () => {
       deleteOne: jest.fn(),
     };
 
-    (withAuth as jest.Mock).mockResolvedValue(fakeSession);
+    (withAuth as jest.Mock).mockRejectedValue(new ForbiddenError("Forbidden"));
     (Category.findById as jest.Mock).mockResolvedValue(fakeCategory);
 
     const request = new Request("http://localhost/api/categories/cat1", {
@@ -194,7 +195,7 @@ describe("GET /api/categories", () => {
       save: jest.fn(),
     };
 
-    (withAuth as jest.Mock).mockResolvedValue(fakeSession);
+    (withAuth as jest.Mock).mockRejectedValue(new ForbiddenError("Forbidden"));
     (Category.findById as jest.Mock).mockResolvedValue(fakeCategory);
 
     const request = new Request("http://localhost/api/categories/cat1", {

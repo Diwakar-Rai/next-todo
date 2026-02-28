@@ -2,21 +2,14 @@ import { NextResponse } from "next/server";
 import Category from "@/models/Category";
 import { withAuth } from "@/lib/api";
 import { getOwenershipOrAdmin } from "@/lib/guard";
+import { withErrorHandling } from "@/lib/withErrorHandling";
+import { updateCategorySchema } from "@/validation/category.schema";
 
-export async function PUT(
-  req: Request,
-  { params }: { params: { id: string } },
-) {
-  try {
+export const PUT = withErrorHandling(
+  async (req: Request, { params }: { params: { id: string } }) => {
     const session = await withAuth();
-    const { name } = await req.json();
-
-    if (!name?.trim()) {
-      return NextResponse.json(
-        { message: "Category name is required" },
-        { status: 400 },
-      );
-    }
+    const body = await req.json();
+    const { name } = updateCategorySchema.parse(body);
 
     const category = await Category.findById(params.id);
 
@@ -33,27 +26,11 @@ export async function PUT(
     await category.save();
 
     return NextResponse.json(category, { status: 200 });
-  } catch (error: any) {
-    if (error?.message === "Unauthorized") {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
+  },
+);
 
-    if (error?.message === "Forbidden") {
-      return NextResponse.json({ message: "Forbidden" }, { status: 403 });
-    }
-
-    return NextResponse.json(
-      { message: "Internal Server Error" },
-      { status: 500 },
-    );
-  }
-}
-
-export async function DELETE(
-  req: Request,
-  { params }: { params: { id: string } },
-) {
-  try {
+export const DELETE = withErrorHandling(
+  async (req: Request, { params }: { params: { id: string } }) => {
     const session = await withAuth();
     const category = await Category.findById(params.id);
 
@@ -69,18 +46,5 @@ export async function DELETE(
     await category.deleteOne();
 
     return NextResponse.json({ message: "Category deleted" }, { status: 200 });
-  } catch (error: any) {
-    if (error?.message === "Unauthorized") {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
-
-    if (error?.message === "Forbidden") {
-      return NextResponse.json({ message: "Forbidden" }, { status: 403 });
-    }
-
-    return NextResponse.json(
-      { message: "Internal Server Error" },
-      { status: 500 },
-    );
-  }
-}
+  },
+);
