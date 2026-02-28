@@ -5,6 +5,7 @@ import Todo from "@/models/Todo";
 import Category from "@/models/Category";
 import { withErrorHandling } from "@/lib/withErrorHandling";
 import { createTodoSchema } from "@/validation/todo.schema";
+import { todoQuerySchema } from "@/validation/todo.query.schema";
 
 export const POST = withErrorHandling(async (req: Request) => {
   const session = await withAuth();
@@ -33,12 +34,40 @@ export const POST = withErrorHandling(async (req: Request) => {
   return NextResponse.json(todo, { status: 201 });
 });
 
-export const GET = withErrorHandling(async () => {
+export const GET = withErrorHandling(async (req: Request) => {
   const session = await withAuth();
-  const filter =
-    session.user.role === "ADMIN"
-      ? { deletedAt: null }
-      : { ownerId: session.user.id, deletedAt: null };
-  const todos = await Todo.find(filter).sort({ createdAt: -1 });
-  return NextResponse.json(todos, { status: 200 });
+  const { searchParams } = new URL(req.url);
+  const parsed = todoQuerySchema.parse(
+    Object.fromEntries(searchParams.entries()),
+  );
+
+  const page = parsed.page ? Number(parsed.page) : 1;
+  const limit = parsed.limit ? Number(parsed.limit) : 10;
+  const skip = (page - 1) * limit;
+  const filter: any = { deletedAt: null };
+
+  if (session.user.role !== "ADMIN") {
+    filter.ownerId = session.user.id;
+  }
+
+  if (parsed.completed !== undefined) {
+    filter.completed = parsed.completed === "true";
+  }
+
+  if (parsed.categoryId) {
+    filter.categoryId = parsed.categoryId;
+  }
+
+  const sortField = parsed.sort || "createdAt";
+  const sortOrder = parsed.order === "asc" ? 1 : -1;
+  const todos = await Todo.find(filter)
+    .sort({ [sortField]: sortOrder })
+    .skip(skip)
+    .limit(limit);
+
+  const total = await Todo.countDocuments(filter);
+  return NextResponse.json({
+    data: todos,
+    pagination: { page, limit, total, totalpages: Math.ceil(total / limit) },
+  });
 });
