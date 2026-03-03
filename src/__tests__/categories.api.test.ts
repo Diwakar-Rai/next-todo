@@ -30,7 +30,7 @@ describe("GET /api/categories", () => {
     ];
     (withAuth as jest.Mock).mockResolvedValue(fakeSession);
     (Category.find as jest.Mock).mockReturnValue({
-      sort: jest.fn().mockReturnValue(fakeCategories),
+      sort: jest.fn().mockResolvedValue(fakeCategories),
     });
     const response = await normalizeResponse(await GET());
     const data = await response.json();
@@ -50,7 +50,7 @@ describe("GET /api/categories", () => {
 
     (withAuth as jest.Mock).mockResolvedValue(fakeSession);
     (Category.find as jest.Mock).mockReturnValue({
-      sort: jest.fn().mockReturnValue(fakeCategories),
+      sort: jest.fn().mockResolvedValue(fakeCategories),
     });
 
     const response = await normalizeResponse(await GET());
