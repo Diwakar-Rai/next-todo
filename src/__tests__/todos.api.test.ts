@@ -1,7 +1,12 @@
 jest.mock("@/lib/api", () => ({ withAuth: jest.fn() }));
 jest.mock("@/models/Todo", () => ({
   __esModule: true,
-  default: { create: jest.fn(), find: jest.fn(), findById: jest.fn() },
+  default: {
+    create: jest.fn(),
+    find: jest.fn(),
+    findById: jest.fn(),
+    countDocuments: jest.fn(),
+  },
 }));
 jest.mock("@/models/Category", () => ({
   __esModule: true,
@@ -173,7 +178,7 @@ describe("GET /api/todos", () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
-  it("returns only user's todos for USER role", async () => {
+  it("returns paginated todos for USER role", async () => {
     const fakeSession = {
       user: { id: "user1", role: "USER" },
     };
@@ -181,11 +186,17 @@ describe("GET /api/todos", () => {
       { _id: "t1", title: "Todo 1", ownerId: "user1" },
       { _id: "t2", title: "Todo 2", ownerId: "user1" },
     ];
+    const mockLimit = jest.fn().mockResolvedValue(fakeTodos);
+    const mockSkip = jest.fn(() => ({ limit: mockLimit }));
+    const mockSort = jest.fn(() => ({ skip: mockSkip }));
     (withAuth as jest.Mock).mockResolvedValue(fakeSession);
     (Todo.find as jest.Mock).mockReturnValue({
-      sort: jest.fn().mockResolvedValue(fakeTodos),
+      sort: mockSort,
     });
-    const response = (await GET()) as Response;
+    (Todo.countDocuments as jest.Mock).mockResolvedValue(1);
+
+    const request = new Request("http://localhost/api/todos?page=1&limit=10");
+    const response = (await GET(request)) as Response;
     const data = await response.json();
 
     expect(Todo.find).toHaveBeenCalledWith({
@@ -193,10 +204,18 @@ describe("GET /api/todos", () => {
       deletedAt: null,
     });
     expect(response.status).toBe(200);
-    expect(data).toEqual(fakeTodos);
+    expect(data).toEqual({
+      data: fakeTodos,
+      pagination: {
+        page: 1,
+        limit: 10,
+        total: 1,
+        totalpages: 1,
+      },
+    });
   });
 
-  it("returns all todos for ADMIN role", async () => {
+  it("returns paginated todos for ADMIN role", async () => {
     const fakeSession = {
       user: { id: "admin1", role: "ADMIN" },
     };
@@ -205,11 +224,18 @@ describe("GET /api/todos", () => {
       { _id: "t2", title: "Todo 2", ownerId: "user2" },
     ];
 
+    const mockLimit = jest.fn().mockResolvedValue(fakeTodos);
+    const mockSkip = jest.fn(() => ({ limit: mockLimit }));
+    const mockSort = jest.fn(() => ({ skip: mockSkip }));
+
     (withAuth as jest.Mock).mockResolvedValue(fakeSession);
     (Todo.find as jest.Mock).mockReturnValue({
-      sort: jest.fn().mockResolvedValue(fakeTodos),
+      sort: mockSort,
     });
-    const response = (await GET()) as Response;
+    (Todo.countDocuments as jest.Mock).mockResolvedValue(2);
+
+    const request = new Request("http://localhost/api/todos?page=1&limit=10");
+    const response = (await GET(request)) as Response;
     const data = await response.json();
 
     expect(Todo.find).toHaveBeenCalledWith({
@@ -217,7 +243,7 @@ describe("GET /api/todos", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(data).toEqual(fakeTodos);
+    expect(data.pagination.total).toBe(2);
   });
 
   it("returns 401 when user is not authenticated", async () => {
@@ -230,6 +256,31 @@ describe("GET /api/todos", () => {
     expect(response.status).toBe(401);
     expect(data.message).toBe("Unauthorized");
     expect(Todo.find).not.toHaveBeenCalled();
+  });
+  it("filters by completed", async () => {
+    const fakeSession = {
+      user: { id: "user1", role: "USER" },
+    };
+
+    const mockLimit = jest.fn().mockResolvedValue([]);
+    const mockSkip = jest.fn(() => ({ limit: mockLimit }));
+    const mockSort = jest.fn(() => ({ skip: mockSkip }));
+
+    (withAuth as jest.Mock).mockResolvedValue(fakeSession);
+    (Todo.find as jest.Mock).mockReturnValue({
+      sort: mockSort,
+    });
+    (Todo.countDocuments as jest.Mock).mockResolvedValue(0);
+
+    const request = new Request("http://localhost/api/todos?completed=true");
+
+    await GET(request);
+
+    expect(Todo.find).toHaveBeenCalledWith({
+      ownerId: "user1",
+      deletedAt: null,
+      completed: true,
+    });
   });
 });
 
