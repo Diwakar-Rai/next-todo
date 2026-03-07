@@ -28,7 +28,7 @@ export function withErrorHandling(handler: Function) {
       //     requestId,
       //   },
       // );
-      logger.info({
+      logger?.info({
         method: request?.method ?? "UNKNOWN",
         url: request?.url ?? "UNKNOWN",
         status: response.status,
