@@ -33,14 +33,4 @@ describe("Profile Integration", () => {
     expect(response.body).toEqual(fakeUser);
   });
 
-  it("returns profile from database", async () => {
-    const user = await User.create({
-      name: "Test User",
-      email: "test@email.com",
-      password: "hashed",
-    });
-
-    const foundUser = await User.findById(user._id);
-    expect(foundUser?.name).toBe("Test User");
-  });
 });

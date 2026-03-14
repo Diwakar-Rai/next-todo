@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
 import User from "@/models/User";
 import { hashPassword } from "@/lib/password";
+import { withRateLimiter } from "@/lib/withRateLimiter";
 
-export async function POST(req: Request) {
+export const POST = withRateLimiter(async (req: Request) => {
   try {
     const { name, email, password } = await req.json();
 
@@ -40,4 +41,4 @@ export async function POST(req: Request) {
   } catch (error) {
     return NextResponse.json({ message: "Internal Server Error", status: 500 });
   }
-}
+});

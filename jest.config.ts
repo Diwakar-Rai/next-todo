@@ -11,7 +11,7 @@ const config: Config = {
     "!src/lib/db.ts",
     "!src/lib/swagger.ts",
   ],
-  setupFilesAfterEnv: ["<rootDir>/src/test/jest.stup.ts"],
+  setupFilesAfterEnv: ["<rootDir>/src/test/jest.setup.ts"],
 };
 
 export default config;
